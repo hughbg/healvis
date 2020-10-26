@@ -182,6 +182,7 @@ class Observatory(object):
         pix = hp.query_disc(Nside, cvec, radius)
         vecs = hp.pix2vec(Nside, pix)
         vecs = np.array(vecs).T  # Shape (Npix, 3)
+        vecs[0] = hp.ang2vec(125.7, -30.72, lonlat=True)     # Test
 
         colat = np.arccos(np.dot(cvec, nvec))  # Should be close to 90d
         xvec = np.cross(nvec, cvec) * 1 / np.sin(colat)
@@ -308,7 +309,7 @@ class Observatory(object):
             else:
                 north = None
             za_arr, az_arr, pix = self.calc_azza(self.Nside, c, north, return_inds=True)
- 
+            
             if isinstance(self.beam, list):
                 # Adds another dimension to beam_cube: the baselines
                 beam_cube = [ None for i in range(len(self.array)) ]
@@ -330,9 +331,15 @@ class Observatory(object):
                 horizon_taper = 1.0
             for bi, bl in enumerate(self.array):
                 fringe_cube = bl.get_fringe(az_arr, za_arr, self.freqs)
-                vis = np.sum(shell[..., pix, :] * horizon_taper * 
-                             (beam_cube[bi] if isinstance(beam_cube, list) else beam_cube) *
-                             fringe_cube, axis=-2)
+                #vis = np.sum(shell[..., pix, :].fill(flux) * horizon_taper * 
+                #        (beam_cube[bi] if isinstance(beam_cube, list) else beam_cube) *
+                #             fringe_cube, axis=-2)  # Test
+                flux = 2    # Test
+                sh = shell[..., pix, :]
+                sh.fill(flux)
+                vis = (sh * horizon_taper *               
+                        (beam_cube[bi] if isinstance(beam_cube, list) else beam_cube) *
+                        fringe_cube)[:, 0, :]       # Test
                 vis_array.put((tinds[count], bi, vis.tolist()))
             with Nfin.get_lock():
                 Nfin.value += 1
@@ -413,4 +420,5 @@ class Observatory(object):
         baseline_array = np.array(baseline_inds)[srt]
 
         # Time and baseline arrays are now Nblts
-        return visibilities / conv_fact, time_array, baseline_array
+        #return visibilities / conv_fact, time_array, baseline_array
+        return visibilities, time_array, baseline_array     # Test
